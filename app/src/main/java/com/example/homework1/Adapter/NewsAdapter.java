@@ -1,7 +1,6 @@
 package com.example.homework1.Adapter;
 
 import android.content.Context;
-import android.graphics.Bitmap;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,7 +12,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.example.homework1.Async.ImageLoader;
+import com.bumptech.glide.Glide;
 import com.example.homework1.Entity.News;
 import com.example.homework1.R;
 
@@ -61,19 +60,14 @@ public class NewsAdapter extends ArrayAdapter<News> {
         holder.author.setText(itemData.getAuthor());
 
         if(!TextUtils.isEmpty(itemData.getImage_url())){
-            new ImageLoader(new ImageLoader.Callback() {
-                @Override
-                public void loadImage(Bitmap bitmap) {
-                    holder.pic.setImageBitmap(bitmap);
-                }
-            }).execute(itemData.getImage_url());
+            Glide.with(view)
+                    .load(itemData.getImage_url().replace("http","https"))
+                    .override(400,300)
+                    .into(holder.pic);
         }else{
             holder.pic.setVisibility(View.GONE);
         }
         return view;
     }
 
-    private void loadNews(String URL){
-
-    }
 }
