@@ -1,0 +1,75 @@
+name: Android Release
+
+on:
+  push:
+    tags: [v*]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: "11"
+          distribution: "temurin"
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      - name: Build with Gradle
+        run: ./gradlew build
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: AndroidHomework1-Release
+          path: app/build/outputs/apk/release/app-release-unsigned.apk
+
+  release:
+    needs: build
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Prepare Release
+        id: prepare_release
+        run: |
+          TAG_NAME=`echo $GITHUB_REF | cut -d / -f3`
+          echo ::set-output name=tag_name::$TAG_NAME
+
+      - name: Download Release APK
+        if: steps.prepare_release.outputs.tag_name
+        uses: actions/download-artifact@v2
+        with:
+          name: AndroidHomework1-Release
+
+      - shell: bash
+        run: |
+          mv app-release-unsigned.apk app-release-unsigned-${{steps.prepare_release.outputs.tag_name}}.apk
+
+      - name: Create Release
+        id: create_release
+        if: steps.prepare_release.outputs.tag_name
+        uses: actions/create_release@v1
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        with:
+          tag_name: ${{steps.prepare_release.outputs.tag_name}}
+          release: Release ${{steps.prepare_release.outputs.tag_name}} by Evalexp
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Assets
+        id: upload_release_assets
+        if: steps.create_release.outputs.upload_url
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        with:
+          upload_url: ${{steps.create_release.outputs.upload_url}}
+          asset_path: ./app-release-unsigned-${{steps.prepare_release.outputs.tag_name}}.apk
+          asset_name: app-release-unsigned-${{steps.prepare_release.outputs.tag_name}}.apk
+          asset_content_type: application/vnd.android.package-archive
